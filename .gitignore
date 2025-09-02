@@ -1,0 +1,14 @@
+# Ignore Python virtual environment
+myvenv/
+
+# Ignore Python cache files everywhere
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore cache specifically in root and app subdirectories
+/app/__pycache__/
+/app/routes/__pycache__/
+/app/services/__pycache__/
+/app/utils/__pycache__/
