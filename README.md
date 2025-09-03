@@ -1,1 +1,2 @@
-# Insurance-Policy-QnA-AI-Agent-
+# GenAI-for-Legal-Documents
+
