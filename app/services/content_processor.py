@@ -24,12 +24,12 @@ class ContentProcessor:
             response.raise_for_status()
             
             content_type = response.headers.get("content-type", "").lower()
-            logger.info(f"📥 Downloaded content with type: {content_type}")
+            logger.info(f" Downloaded content with type: {content_type}")
             
             text = ""
             # Handle different content types
             if "application/pdf" in content_type:
-                logger.info("📄 Detected PDF, processing with PyPDFLoader...")
+                logger.info(" Detected PDF, processing with PyPDFLoader...")
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
                     temp_file.write(response.content)
                     temp_file_path = temp_file.name
@@ -51,7 +51,7 @@ class ContentProcessor:
 
 
             elif "text/plain" in content_type:
-                logger.info("📜 Detected plain text, processing directly.")
+                logger.info(" Detected plain text, processing directly.")
                 text = response.text
 
             else:
@@ -63,12 +63,13 @@ class ContentProcessor:
 
             # Clean NUL characters
             cleaned_text = text.replace("\x00", "")
-            logger.info(f"✅ Extracted and cleaned {len(cleaned_text)} characters.")
+            logger.info(f"Extracted and cleaned {len(cleaned_text)} characters.")
             return cleaned_text.strip()
 
         except HTTPException:
             # Re-raise FastAPI exceptions directly
             raise
         except Exception as e:
-            logger.error(f"💥 Failed to download and extract content: {e}")
+            logger.error(f" Failed to download and extract content: {e}")
             raise HTTPException(status_code=400, detail=f"Failed to process content from URL: {str(e)}")
+
