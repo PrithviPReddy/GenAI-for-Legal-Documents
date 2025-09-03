@@ -57,6 +57,43 @@ async def process_documents(request: ProcessRequest, credentials: HTTPAuthorizat
     answers = llm_processor.generate_answers(request.questions, final_chunks)
     return ProcessResponse(answers=answers)
 
+# Add these new Pydantic models with the others
+class SummarizeRequest(BaseModel):
+    documents: HttpUrl
+
+class SummarizeResponse(BaseModel):
+    summary: str
+
+
+# Add this new endpoint function within the file
+@router.post("/hackrx/summarize", response_model=SummarizeResponse)
+async def summarize_document(request: SummarizeRequest, credentials: HTTPAuthorizationCredentials = Depends(verify_token)):
+    """
+    Downloads a document from a URL, extracts its content, and returns a summary.
+    """
+    url = str(request.documents)
+    
+    try:
+        # Step 1: Download and extract the full text content.
+        # We reuse the existing content_processor for this.
+        full_text = content_processor.download_and_extract(url)
+        log_document_content(full_text)
+
+        # Step 2: Pass the text and the chunker instance to the new summarize method.
+        # The llm_processor will handle chunking and summarization.
+        summary = llm_processor.summarize_text(full_text, text_chunker)
+
+        # Step 3: Return the final summary.
+        return SummarizeResponse(summary=summary)
+        
+    except HTTPException as http_exc:
+        # Re-raise FastAPI-specific exceptions
+        raise http_exc
+    except Exception as e:
+        # Handle other potential errors
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+
+
 @router.get("/health")
 async def health_check():
     return {"status": "healthy"}

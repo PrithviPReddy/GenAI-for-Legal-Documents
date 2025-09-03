@@ -8,6 +8,52 @@ from app.utils.logger import logger
 class ImprovedLLMProcessor:
     """Enhanced LLM processor with better prompting and context handling"""
     
+
+    def summarize_text(self, text: str, chunker) -> str:
+        """
+        Summarizes a large text using the Map-Reduce strategy.
+        """
+        logger.info("Starting summarization process for document...")
+        try:
+            # 1. Chunk the text using the provided chunker
+            chunks = chunker.chunk_text(text)
+            if not chunks:
+                logger.warning("Text could not be chunked. Returning empty summary.")
+                return ""
+
+            # 2. MAP step: Get a summary for each chunk
+            map_prompt = "You are a legal document analyst. Summarize the following text from a legal document in a few key bullet points, focusing on articles, rules, or main topics:"
+            chunk_summaries = []
+            logger.info(f"Summarizing {len(chunks)} chunks individually (Map step)...")
+            
+            model = genai.GenerativeModel(self.model_name)
+            for i, chunk in enumerate(chunks):
+                prompt = f"{map_prompt}\n\n---TEXT---\n{chunk}"
+                response = model.generate_content(prompt)
+                chunk_summaries.append(response.text)
+                logger.info(f"  > Summarized chunk {i+1}/{len(chunks)}")
+
+            # 3. REDUCE step: Combine the summaries into a final summary
+            logger.info("Combining chunk summaries into a final summary (Reduce step)...")
+            reduce_prompt = """You are a master legal document analyst. The following are multiple summaries from sequential parts of a single legal document.
+                                Your task is to synthesize these summaries into a single, well-structured, and coherent final summary of the entire document.
+                                Ensure the final summary is easy to read, logically structured, and captures the overall purpose and key components of the document.
+                            """
+            combined_summaries = "\n\n".join(chunk_summaries)
+            final_prompt = f"{reduce_prompt}\n\n---SUMMARIES---\n{combined_summaries}"
+
+            final_response = model.generate_content(final_prompt)
+            final_summary = final_response.text.strip()
+            
+            logger.info("Successfully generated final summary.")
+            return final_summary
+
+        except Exception as e:
+            logger.error(f"Failed to summarize text: {e}")
+            logger.error(traceback.format_exc())
+            return f"Error during summarization: {str(e)}"
+
+    
     def __init__(self, model_name: str = "gemini-2.0-flash"):
         # Use a modern, capable model
         self.model_name = model_name
