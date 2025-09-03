@@ -42,11 +42,11 @@ class ImprovedTextChunker:
                 if len(processed_chunk.strip()) > 100:  # Only keep substantial chunks
                     processed_chunks.append(processed_chunk)
             
-            logger.info(f"✅ Created {len(processed_chunks)} processed chunks from text")
+            logger.info(f" Created {len(processed_chunks)} processed chunks from text")
             return processed_chunks
             
         except Exception as e:
-            logger.error(f"❌ Failed to chunk text: {e}")
+            logger.error(f" Failed to chunk text: {e}")
             return []
     
     def preprocess_text(self, text: str) -> str:
@@ -76,3 +76,4 @@ class ImprovedTextChunker:
         chunk = chunk.strip()
         
         return chunk
+
