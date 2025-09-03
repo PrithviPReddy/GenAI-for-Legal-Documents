@@ -33,7 +33,7 @@ Remember to always answer in max 2 to 3 lines.
             context = self.format_context(context_chunks)
             
             # Log payload
-            logger.info(f"📤 Sending to LLM:")
+            logger.info(f" Sending to LLM:")
             logger.info(f"  - Questions: {len(questions)}")
             logger.info(f"  - Context chunks: {len(context_chunks)}")
             logger.info(f"  - Total context length: {len(context)} chars")
@@ -48,26 +48,26 @@ QUESTIONS TO ANSWER:
 
 Please answer each question based only on the provided context chunks. Look for both direct information and related concepts that can help answer the questions."""
             
-            logger.info("🔤 Prompt preview (first 500 chars): " + (user_message[:500] + "..." if len(user_message) > 500 else user_message))
+            logger.info("Prompt preview (first 500 chars): " + (user_message[:500] + "..." if len(user_message) > 500 else user_message))
             
             # Call Gemini
-            logger.info("🌐 Making Gemini API call...")
+            logger.info("Making Gemini API call...")
             model = genai.GenerativeModel(self.model_name)
             response = model.generate_content(f"{self.system_prompt}\n\n{user_message}")
             response_text = response.text.strip()
             
-            logger.info(f"📥 Raw LLM Response (first 500 chars): {response_text[:500]}...")
+            logger.info(f" Raw LLM Response (first 500 chars): {response_text[:500]}...")
             
             parsed_answers = self.parse_response(response_text, questions)
             
-            logger.info(f"✅ Generated answers for {len(questions)} questions:")
+            logger.info(f" Generated answers for {len(questions)} questions:")
             for i, answer in enumerate(parsed_answers, 1):
                 logger.info(f"  {i}. {answer}")
             
             return parsed_answers
             
         except Exception as e:
-            logger.error(f"💥 Failed to generate answers: {e}")
+            logger.error(f" Failed to generate answers: {e}")
             logger.error(traceback.format_exc())
             return [f"Error: {str(e)}" for _ in questions]
     
@@ -103,7 +103,7 @@ Please answer each question based only on the provided context chunks. Look for 
             return answers[:len(questions)]
         
         except Exception as err:
-            logger.warning(f"⚠ JSON parsing failed: {err}")
+            logger.warning(f"JSON parsing failed: {err}")
             return self.fallback_parse(response_text, questions)
     
     def fallback_parse(self, response_text: str, questions: List[str]) -> List[str]:
@@ -132,3 +132,4 @@ Please answer each question based only on the provided context chunks. Look for 
             answers.append("Unable to process this question due to response parsing issues.")
         
         return answers[:len(questions)]
+
