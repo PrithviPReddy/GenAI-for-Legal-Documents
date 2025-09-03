@@ -10,7 +10,7 @@ from cache_manager import get_cached_document, cache_document, cache_stats
 from pydantic import BaseModel, HttpUrl
 import uuid
 
-router = APIRouter(prefix="/api/v1")
+router = APIRouter(prefix="/api")
 security = HTTPBearer()
 
 # Initialize processors
@@ -31,7 +31,7 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
         raise HTTPException(status_code=401, detail="Invalid authentication token")
     return credentials
 
-@router.post("/hackrx/run", response_model=ProcessResponse)
+@router.post("/run", response_model=ProcessResponse)
 async def process_documents(request: ProcessRequest, credentials: HTTPAuthorizationCredentials = Depends(verify_token)):
     url = str(request.documents)
     cached_doc = get_cached_document(url)
@@ -66,7 +66,7 @@ class SummarizeResponse(BaseModel):
 
 
 # Add this new endpoint function within the file
-@router.post("/hackrx/summarize", response_model=SummarizeResponse)
+@router.post("/summarize", response_model=SummarizeResponse)
 async def summarize_document(request: SummarizeRequest, credentials: HTTPAuthorizationCredentials = Depends(verify_token)):
     """
     Downloads a document from a URL, extracts its content, and returns a summary.
