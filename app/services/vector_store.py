@@ -23,11 +23,11 @@ class EnhancedHybridVectorStore:
             )
             
             documents = [match.metadata.get("text", "") for match in results.matches if "text" in match.metadata]
-            logger.info(f"✅ Pinecone search found {len(documents)} chunks for query '{query[:50]}...'")
+            logger.info(f" Pinecone search found {len(documents)} chunks for query '{query[:50]}...'")
             return documents
             
         except Exception as e:
-            logger.error(f"❌ Pinecone search failed: {e}")
+            logger.error(f" Pinecone search failed: {e}")
             return []
 
     def generate_query_variations(self, query: str) -> List[str]:
@@ -85,10 +85,10 @@ class EnhancedHybridVectorStore:
             )
             
             documents = [match.metadata.get("text", "") for match in results.matches if "text" in match.metadata]
-            logger.info(f"🔎 Search found {len(documents)} chunks for document {document_id}")
+            logger.info(f" Search found {len(documents)} chunks for document {document_id}")
             return documents
         except Exception as e:
-            logger.error(f"❌ Search failed: {e}")
+            logger.error(f" Search failed: {e}")
             return []
 
     def add_to_pinecone_fallback(self, chunks: List[str], document_id: str):
@@ -117,6 +117,7 @@ class EnhancedHybridVectorStore:
                 
                 pinecone_index.upsert(vectors=vectors, namespace=self.namespace)
             
-            logger.info(f"✅ Added {len(chunks)} chunks to Pinecone for document {document_id}")
+            logger.info(f" Added {len(chunks)} chunks to Pinecone for document {document_id}")
         except Exception as e:
-            logger.error(f"❌ Failed to add to Pinecone fallback: {e}")
+            logger.error(f" Failed to add to Pinecone fallback: {e}")
+
