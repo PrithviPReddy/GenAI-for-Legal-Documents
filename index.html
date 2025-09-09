@@ -98,7 +98,7 @@
             width: 24px;
             height: 24px;
             animation: spin 1s linear infinite;
-            display: none; /* Hidden by default */
+            display: none; 
             margin: 1rem auto;
         }
         @keyframes spin {
@@ -106,7 +106,7 @@
             100% { transform: rotate(360deg); }
         }
         #interaction-section {
-            display: none; /* Hidden until a session is active */
+            display: none; 
         }
     </style>
 </head>
@@ -161,7 +161,7 @@
         </div>
     </div>
     <script>
-        const API_BASE_URL = "http://localhost:8000"; // IMPORTANT: Change if your API is elsewhere
+        const API_BASE_URL = "http://localhost:8000"; 
     
         // DOM Elements
         const bearerTokenInput = document.getElementById('bearer-token');
