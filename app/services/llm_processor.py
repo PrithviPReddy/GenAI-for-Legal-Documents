@@ -23,7 +23,7 @@ class ImprovedLLMProcessor:
                 return ""
 
             # --- NEW LOGIC: Group chunks to reduce API calls ---
-            group_size = 10  # Combine 10 small chunks into one larger API call. Adjust as needed.
+            group_size = 30  # Combine 30 small chunks into one larger API call. Adjust as needed.
             grouped_chunks = []
             for i in range(0, len(chunks), group_size):
                 # Join the chunks in the group with a clear separator
@@ -194,4 +194,5 @@ Please answer each question based only on the provided context chunks. Look for 
             answers.append("Unable to process this question due to response parsing issues.")
         
         return answers[:len(questions)]
+
 
