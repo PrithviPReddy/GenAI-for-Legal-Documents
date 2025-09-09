@@ -4,6 +4,7 @@ import json
 import traceback
 import google.generativeai as genai
 from app.utils.logger import logger
+import time 
 
 class ImprovedLLMProcessor:
     """Enhanced LLM processor with better prompting and context handling"""
@@ -11,34 +12,49 @@ class ImprovedLLMProcessor:
 
     def summarize_text(self, text: str, chunker) -> str:
         """
-        Summarizes a large text using the Map-Reduce strategy.
+        Summarizes a large text using a Map-Reduce strategy with chunk grouping to respect rate limits.
         """
         logger.info("Starting summarization process for document...")
         try:
-            # 1. Chunk the text using the provided chunker
+            # 1. Chunk the text as before
             chunks = chunker.chunk_text(text)
             if not chunks:
                 logger.warning("Text could not be chunked. Returning empty summary.")
                 return ""
 
-            # 2. MAP step: Get a summary for each chunk
+            # --- NEW LOGIC: Group chunks to reduce API calls ---
+            group_size = 10  # Combine 10 small chunks into one larger API call. Adjust as needed.
+            grouped_chunks = []
+            for i in range(0, len(chunks), group_size):
+                # Join the chunks in the group with a clear separator
+                combined_chunk = "\n---\n".join(chunks[i:i + group_size])
+                grouped_chunks.append(combined_chunk)
+            
+            logger.info(f"Original chunks: {len(chunks)}. Grouped into {len(grouped_chunks)} API calls.")
+            # ----------------------------------------------------
+
+            # 2. MAP step: Get a summary for each GROUPED chunk
             map_prompt = "You are a legal document analyst. Summarize the following text from a legal document in a few key bullet points, focusing on articles, rules, or main topics:"
             chunk_summaries = []
-            logger.info(f"Summarizing {len(chunks)} chunks individually (Map step)...")
+            logger.info(f"Summarizing {len(grouped_chunks)} grouped chunks individually (Map step)...")
             
             model = genai.GenerativeModel(self.model_name)
-            for i, chunk in enumerate(chunks):
-                prompt = f"{map_prompt}\n\n---TEXT---\n{chunk}"
+            for i, chunk_group in enumerate(grouped_chunks):
+                prompt = f"{map_prompt}\n\n---TEXT---\n{chunk_group}"
                 response = model.generate_content(prompt)
                 chunk_summaries.append(response.text)
-                logger.info(f"  > Summarized chunk {i+1}/{len(chunks)}")
+                logger.info(f"  > Summarized group {i+1}/{len(grouped_chunks)}")
+                
+                # Add a sleep timer to respect the rate limit (e.g., 15 RPM = 4 seconds/request)
+                # We'll use 2 seconds to be safe and efficient.
+                time.sleep(2)
 
             # 3. REDUCE step: Combine the summaries into a final summary
             logger.info("Combining chunk summaries into a final summary (Reduce step)...")
-            reduce_prompt = """You are a master legal document analyst. The following are multiple summaries from sequential parts of a single legal document.
-                                Your task is to synthesize these summaries into a single, well-structured, and coherent final summary of the entire document.
-                                Ensure the final summary is easy to read, logically structured, and captures the overall purpose and key components of the document.
-                            """
+            reduce_prompt = """You are a master legal analyst. The following are multiple summaries from sequential parts of a single legal document.
+Your task is to synthesize these summaries into a single, well-structured, and coherent final summary of the entire document.
+Ensure the final summary is easy to read, logically structured, and captures the overall purpose and key components of the document.
+"""
             combined_summaries = "\n\n".join(chunk_summaries)
             final_prompt = f"{reduce_prompt}\n\n---SUMMARIES---\n{combined_summaries}"
 
