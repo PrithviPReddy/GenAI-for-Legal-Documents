@@ -1,13 +1,92 @@
-from typing import List
+from typing import List, Dict
 import re
 import json
 import traceback
 import google.generativeai as genai
 from app.utils.logger import logger
 import time 
-
 class ImprovedLLMProcessor:
     """Enhanced LLM processor with better prompting and context handling"""
+
+    # In app/services/llm_processor.py
+    def analyze_text_for_risks(self, text: str) -> list:
+        """
+        Analyzes text for a predefined checklist of financial and legal risks.
+        """
+        RISK_CHECKLIST = [
+            {
+                "category": "Automatic Renewal",
+                "prompt": "Analyze the provided text for any clauses that mention automatic renewal, auto-renewal, or continuation of a service, subscription, or contract. If found, provide the exact quote and a simple, one-sentence explanation of the risk (e.g., being charged unexpectedly). Respond in JSON format with keys 'found' (boolean), 'quote' (string), and 'explanation' (string). If no such clause is found, respond with {'found': False}."
+            },
+            {
+                "category": "High Penalties or Unclear Fees",
+                "prompt": "Analyze the text for mentions of specific penalties, late fees, termination fees, cancellation fees, or other non-standard charges. Also look for vague language like 'administrative fees may apply'. If found, provide the exact quote and a simple, one-sentence explanation of the potential financial impact. Respond in JSON format with keys 'found' (boolean), 'quote' (string), and 'explanation' (string). If no such clause is found, respond with {'found': False}."
+            },
+            {
+                "category": "Waiver of Rights / Arbitration",
+                "prompt": "Analyze the text for language where a party waives their legal rights, such as the right to sue, join a class action lawsuit, or demand a jury trial. Also look for mandatory arbitration clauses. If found, provide the exact quote and a simple, one-sentence explanation of the risk. Respond in JSON format with keys 'found' (boolean), 'quote' (string), and 'explanation' (string). If no such clause is found, respond with {'found': False}."
+            },
+            {
+                "category": "One-Sided Indemnification",
+                "prompt": "Analyze the text for indemnification or 'hold harmless' clauses that disproportionately favor one party, requiring the individual to cover all legal costs or damages, even if they are not entirely at fault. If found, provide the exact quote and a simple explanation of the risk. Respond in JSON format with keys 'found' (boolean), 'quote' (string), and 'explanation' (string). If no such clause is found, respond with {'found': False}."
+            },
+            {
+                "category": "Exclusions & Limitations of Liability",
+                "prompt": "Analyze the text for clauses that exclude or limit the provider's liability or responsibilities (e.g., 'we are not responsible for...', 'coverage does not include...'). This is common in insurance. If found, extract the quote and explain what is not covered or what the provider is not responsible for. Respond in JSON format with keys 'found' (boolean), 'quote' (string), and 'explanation' (string). If no such clause is found, respond with {'found': False}."
+            },
+            {
+                "category": "Unfavorable Payment Terms",
+                "prompt": "Analyze the text for unfavorable financial terms in loans or contracts, such as variable interest rates, prepayment penalties (fees for paying a loan off early), or acceleration clauses (making the full loan amount due after a missed payment). If found, provide the quote and explain the financial risk. Respond in JSON format with keys 'found' (boolean), 'quote' (string), and 'explanation' (string). If no such clause is found, respond with {'found': False}."
+            },
+            {
+                "category": "Ambiguous or Vague Language",
+                "prompt": "Analyze the text for clauses that are intentionally vague, subjective, or poorly defined (e.g., using terms like 'reasonable efforts', 'at our sole discretion', 'subject to change without notice'). If found, provide the quote and explain why the ambiguity could be a risk. Respond in JSON format with keys 'found' (boolean), 'quote' (string), and 'explanation' (string). If no such clause is found, respond with {'found': False}."
+            },
+            {
+                "category": "Restrictions on Use or Access",
+                "prompt": "Analyze the text for clauses that place significant restrictions on how you can use a property, service, or product (e.g., strict guest policies in a rental, limitations on landlord entry, software usage limitations). If found, extract the quote and explain the restriction. Respond in JSON format with keys 'found' (boolean), 'quote' (string), and 'explanation' (string). If no such clause is found, respond with {'found': False}."
+            },
+            {
+                "category": "Data Privacy & Sharing",
+                "prompt": "Analyze the text for clauses related to the collection, use, or sharing of your personal data with third parties. If found, extract the quote and explain what data is being shared and with whom. Respond in JSON format with keys 'found' (boolean), 'quote' (string), and 'explanation' (string). If no such clause is found, respond with {'found': False}."
+            }
+        ]
+
+        found_risks = []
+        model = genai.GenerativeModel(self.model_name)
+        logger.info(f"Starting risk analysis with a checklist of {len(RISK_CHECKLIST)} items.")
+
+        # We analyze the full text at once. For very long docs, this could be chunked.
+        for item in RISK_CHECKLIST:
+            logger.info(f"  > Scanning for risk category: {item['category']}...")
+            
+            prompt = f"{item['prompt']}\n\n--- DOCUMENT TEXT ---\n{text[:20000]}" # Limit text to avoid exceeding context limits for this task
+            
+            try:
+                response = model.generate_content(prompt)
+                
+                # Basic JSON extraction
+                json_str_match = re.search(r'\{.*\}', response.text, re.DOTALL)
+                if json_str_match:
+                    parsed_response = json.loads(json_str_match.group())
+                    if parsed_response.get("found"):
+                        found_risks.append({
+                            "risk_category": item["category"],
+                            "explanation": parsed_response.get("explanation", "N/A"),
+                            "quote": parsed_response.get("quote", "N/A")
+                        })
+                        logger.info(f"    ✔ Found risk: {item['category']}")
+                
+                # Respect rate limits
+                time.sleep(2)
+
+            except Exception as e:
+                logger.error(f"Error during risk analysis for category {item['category']}: {e}")
+                time.sleep(2) # Still sleep on error to avoid hammering the API
+
+        logger.info(f"Risk analysis complete. Found {len(found_risks)} potential risks.")
+        return found_risks
+   
     
 
     def summarize_text(self, text: str, chunker) -> str:
