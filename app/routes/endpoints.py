@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional
+from typing import Optional, List, Dict
 from fastapi import (
     APIRouter, HTTPException, Depends, UploadFile, File, Form, Response, Cookie, Request
 )
@@ -24,6 +24,16 @@ security = HTTPBearer()
 # llm_processor = ImprovedLLMProcessor()
 
 # --- Pydantic Models for New Workflow ---
+
+class RiskItem(BaseModel):
+    risk_category: str
+    explanation: str
+    quote: str
+
+class AnalyzeResponse(BaseModel):
+    risks: list[RiskItem] 
+
+
 class UploadResponse(BaseModel):
     message: str
     session_id: str # For debugging/reference
@@ -43,6 +53,28 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     return credentials
 
 # --- NEW WORKFLOW ENDPOINTS ---
+
+@router.post("/analyze/risks", response_model=AnalyzeResponse)
+async def analyze_document_risks(
+    request: Request,
+    session_id: Optional[str] = Cookie(None),
+    credentials: HTTPAuthorizationCredentials = Depends(verify_token)
+):
+    """
+    Analyzes the document in the current session for potential risks.
+    """
+    llm_processor = request.app.state.llm_processor
+
+    if not session_id or not (session_data := get_session_data(session_id)):
+        raise HTTPException(status_code=400, detail="No active session. Please upload a document first.")
+    
+    full_text = session_data["full_text"]
+    
+    found_risks = llm_processor.analyze_text_for_risks(full_text)
+    
+    return AnalyzeResponse(risks=found_risks)
+
+    
 @router.post("/upload", response_model=UploadResponse)
 async def upload_document(
     request: Request, # Add request to access app state
