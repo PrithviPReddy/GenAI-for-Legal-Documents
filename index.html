@@ -1,3 +1,5 @@
+<!-- to run the frontend -->
+<!-- python -m http.server 8080 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -141,6 +143,7 @@
         </div>
 
         <div id="interaction-section" class="card">
+            
             <h2>Step 2: Interact with Active Document</h2>
             <div class="form-group">
                 <label for="questions-input">Ask Questions (one per line)</label>
@@ -152,7 +155,11 @@
                 <label>Get a summary of the entire document.</label>
                 <button id="summary-btn">Get Summary</button>
             </div>
-        </div>
+            <hr>
+            <div class="form-group">
+                <label>Scan the document for potential financial or legal traps.</label>
+                <button id="analyze-btn">Analyze for Traps</button>
+            </div>
 
         <div class="card">
             <h2>Results</h2>
@@ -172,6 +179,7 @@
         const resultBox = document.getElementById('result-box');
         const spinner = document.getElementById('spinner');
         const interactionSection = document.getElementById('interaction-section');
+        const analyzeBtn = document.getElementById('analyze-btn');
         
         // Upload type switching
         const fileInputGroup = document.getElementById('file-input-group');
@@ -301,7 +309,47 @@
                 showLoading(false);
             }
         });
-    
+
+        // --- Corrected function to Analyze for Traps ---
+        analyzeBtn.addEventListener('click', async () => {
+            const token = bearerTokenInput.value.trim();
+            if (!token) {
+                alert('Please provide your token.');
+                return;
+            }
+
+            showLoading(true);
+            try {
+                // CHANGE #1: The endpoint URL was corrected to '/analyze/risks'
+                const response = await fetch(`${API_BASE_URL}/api/v1/analyze/risks`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    credentials: 'include',
+                });
+                
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || 'Failed to analyze risks.');
+
+                let formattedResult = "--- POTENTIAL RISK ANALYSIS ---\n\n";
+                // CHANGE #2: The response key is 'risks', not 'findings'
+                if (data.risks && data.risks.length > 0) {
+                    data.risks.forEach(risk => {
+                        formattedResult += `⚠️ CATEGORY: ${risk.risk_category}\n`;
+                        formattedResult += `EXPLANATION: ${risk.explanation}\n`;
+                        // CHANGE #3: The key for the quote is 'quote', not 'clause_text'
+                        formattedResult += `QUOTE: "${risk.quote}"\n\n`;
+                    });
+                } else {
+                    formattedResult += "✅ No major risks from our checklist were found in the document.";
+                }
+                showResult(formattedResult);
+
+            } catch (error) {
+                showResult(`Error: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        });
     
         // --- UI Helper Functions ---
         function showStatus(type, message) {
@@ -320,6 +368,9 @@
             resultBox.textContent = text;
             resultBox.style.display = 'block';
         }
+
     </script>
 </body>
 </html>
+<!-- to run the frontend -->
+<!-- python -m http.server 8080 -->
