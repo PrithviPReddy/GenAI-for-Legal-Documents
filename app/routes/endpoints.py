@@ -58,7 +58,7 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
 async def analyze_document_risks(
     request: Request,
     session_id: Optional[str] = Cookie(None),
-    credentials: HTTPAuthorizationCredentials = Depends(verify_token)
+    # credentials: HTTPAuthorizationCredentials = Depends(verify_token)
 ):
     """
     Analyzes the document in the current session for potential risks.
@@ -82,7 +82,7 @@ async def upload_document(
     url: Optional[HttpUrl] = Form(None),
     file: Optional[UploadFile] = File(None),
     session_id: Optional[str] = Cookie(None),
-    credentials: HTTPAuthorizationCredentials = Depends(verify_token)
+    # credentials: HTTPAuthorizationCredentials = Depends(verify_token)
 ):
     """
     Handles document upload and starts/resets a user session.
@@ -125,7 +125,7 @@ async def process_documents(
     qa_request: QARequest, # Renamed to avoid conflict with 'request'
     request: Request,      # Add request to access app state
     session_id: Optional[str] = Cookie(None),
-    credentials: HTTPAuthorizationCredentials = Depends(verify_token)
+    # credentials: HTTPAuthorizationCredentials = Depends(verify_token)
 ):
     """
     Answers questions based on the document in the current session.
@@ -152,7 +152,7 @@ async def process_documents(
 async def summarize_document(
     request: Request, # Add request to access app state
     session_id: Optional[str] = Cookie(None),
-    credentials: HTTPAuthorizationCredentials = Depends(verify_token)
+    # credentials: HTTPAuthorizationCredentials = Depends(verify_token)
 ):
     """
     Summarizes the document in the current session.
@@ -172,3 +172,4 @@ async def summarize_document(
 @router.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
