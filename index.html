@@ -116,13 +116,13 @@
     <div class="container">
         <h1>GenAI Document Analysis</h1>
 
-        <div class="card">
+<!--         <div class="card">
             <h2>Authentication</h2>
             <div class="form-group">
                 <label for="bearer-token">Bearer Token</label>
                 <input type="text" id="bearer-token" placeholder="Enter your API Bearer Token">
             </div>
-        </div>
+        </div> -->
 
         <div class="card">
             <h2>Step 1: Upload Document & Start Session</h2>
@@ -226,7 +226,7 @@
             try {
                 const response = await fetch(`${API_BASE_URL}/api/v1/upload`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
+                    // headers: { 'Authorization': `Bearer ${token}` },
                     body: formData,
                     credentials: 'include', // Also good to have here for consistency
                 });
@@ -294,7 +294,7 @@
             try {
                 const response = await fetch(`${API_BASE_URL}/api/v1/summarize`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
+                    // headers: { 'Authorization': `Bearer ${token}` },
                     credentials: 'include', // <-- AND ADD THIS LINE
                 });
                 
@@ -323,7 +323,7 @@
                 // CHANGE #1: The endpoint URL was corrected to '/analyze/risks'
                 const response = await fetch(`${API_BASE_URL}/api/v1/analyze/risks`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
+                    // headers: { 'Authorization': `Bearer ${token}` },
                     credentials: 'include',
                 });
                 
