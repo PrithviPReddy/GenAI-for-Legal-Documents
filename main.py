@@ -11,7 +11,7 @@ from app.services.content_processor import ContentProcessor
 from app.services.chunker import ImprovedTextChunker
 from app.services.llm_processor import ImprovedLLMProcessor
 from app.services.vector_store import EnhancedHybridVectorStore
-# -----------------------------------------
+
 
 from app.routes import endpoints
 from app.utils.logger import logger  # Corrected logger import
@@ -71,3 +71,4 @@ app.include_router(endpoints.router)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="localhost", port=8000, reload=True)
+
