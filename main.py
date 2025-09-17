@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI):
     
     logger.info("Application shutdown...")
 
-app = FastAPI(title="HackRx RAG API", lifespan=lifespan)
+app = FastAPI(title="RAG API", lifespan=lifespan)
 
 # CORS middleware for frontend communication
 app.add_middleware(
