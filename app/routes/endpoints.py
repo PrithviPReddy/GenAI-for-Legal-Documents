@@ -16,12 +16,6 @@ from session_manager import (
 router = APIRouter(prefix="/api/v1")
 security = HTTPBearer()
 
-# --- We no longer initialize services here. They are now loaded in main.py's lifespan ---
-# DELETE the following lines:
-# content_processor = ContentProcessor()
-# text_chunker = ImprovedTextChunker()
-# hybrid_vector_store = EnhancedHybridVectorStore()
-# llm_processor = ImprovedLLMProcessor()
 
 # --- Pydantic Models for New Workflow ---
 
