@@ -2,7 +2,6 @@
 
 from typing import List
 from app.utils.logger import logger
-# We no longer import the models from config
 
 class EnhancedHybridVectorStore:
     """Enhanced hybrid vector storage that receives initialized models."""
@@ -65,4 +64,5 @@ class EnhancedHybridVectorStore:
         except Exception as e:
             logger.error(f" Failed to add to Pinecone fallback: {e}")
             # Re-raise the exception to be caught by the endpoint
+
             raise e
