@@ -11,140 +11,123 @@ class ImprovedLLMProcessor:
     # In app/services/llm_processor.py
     def analyze_text_for_risks(self, text: str) -> list:
         """
-        Analyzes text for a predefined checklist of financial and legal risks.
+        Analyzes text for a predefined checklist of financial and legal risks
+        using a single API call.
         """
-        RISK_CHECKLIST = [
-            {
-                "category": "Automatic Renewal",
-                "prompt": "Analyze the provided text for any clauses that mention automatic renewal, auto-renewal, or continuation of a service, subscription, or contract. If found, provide the exact quote and a simple, one-sentence explanation of the risk (e.g., being charged unexpectedly). Respond in JSON format with keys 'found' (boolean), 'quote' (string), and 'explanation' (string). If no such clause is found, respond with {'found': False}."
-            },
-            {
-                "category": "High Penalties or Unclear Fees",
-                "prompt": "Analyze the text for mentions of specific penalties, late fees, termination fees, cancellation fees, or other non-standard charges. Also look for vague language like 'administrative fees may apply'. If found, provide the exact quote and a simple, one-sentence explanation of the potential financial impact. Respond in JSON format with keys 'found' (boolean), 'quote' (string), and 'explanation' (string). If no such clause is found, respond with {'found': False}."
-            },
-            {
-                "category": "Waiver of Rights / Arbitration",
-                "prompt": "Analyze the text for language where a party waives their legal rights, such as the right to sue, join a class action lawsuit, or demand a jury trial. Also look for mandatory arbitration clauses. If found, provide the exact quote and a simple, one-sentence explanation of the risk. Respond in JSON format with keys 'found' (boolean), 'quote' (string), and 'explanation' (string). If no such clause is found, respond with {'found': False}."
-            },
-            {
-                "category": "One-Sided Indemnification",
-                "prompt": "Analyze the text for indemnification or 'hold harmless' clauses that disproportionately favor one party, requiring the individual to cover all legal costs or damages, even if they are not entirely at fault. If found, provide the exact quote and a simple explanation of the risk. Respond in JSON format with keys 'found' (boolean), 'quote' (string), and 'explanation' (string). If no such clause is found, respond with {'found': False}."
-            },
-            {
-                "category": "Exclusions & Limitations of Liability",
-                "prompt": "Analyze the text for clauses that exclude or limit the provider's liability or responsibilities (e.g., 'we are not responsible for...', 'coverage does not include...'). This is common in insurance. If found, extract the quote and explain what is not covered or what the provider is not responsible for. Respond in JSON format with keys 'found' (boolean), 'quote' (string), and 'explanation' (string). If no such clause is found, respond with {'found': False}."
-            },
-            {
-                "category": "Unfavorable Payment Terms",
-                "prompt": "Analyze the text for unfavorable financial terms in loans or contracts, such as variable interest rates, prepayment penalties (fees for paying a loan off early), or acceleration clauses (making the full loan amount due after a missed payment). If found, provide the quote and explain the financial risk. Respond in JSON format with keys 'found' (boolean), 'quote' (string), and 'explanation' (string). If no such clause is found, respond with {'found': False}."
-            },
-            {
-                "category": "Ambiguous or Vague Language",
-                "prompt": "Analyze the text for clauses that are intentionally vague, subjective, or poorly defined (e.g., using terms like 'reasonable efforts', 'at our sole discretion', 'subject to change without notice'). If found, provide the quote and explain why the ambiguity could be a risk. Respond in JSON format with keys 'found' (boolean), 'quote' (string), and 'explanation' (string). If no such clause is found, respond with {'found': False}."
-            },
-            {
-                "category": "Restrictions on Use or Access",
-                "prompt": "Analyze the text for clauses that place significant restrictions on how you can use a property, service, or product (e.g., strict guest policies in a rental, limitations on landlord entry, software usage limitations). If found, extract the quote and explain the restriction. Respond in JSON format with keys 'found' (boolean), 'quote' (string), and 'explanation' (string). If no such clause is found, respond with {'found': False}."
-            },
-            {
-                "category": "Data Privacy & Sharing",
-                "prompt": "Analyze the text for clauses related to the collection, use, or sharing of your personal data with third parties. If found, extract the quote and explain what data is being shared and with whom. Respond in JSON format with keys 'found' (boolean), 'quote' (string), and 'explanation' (string). If no such clause is found, respond with {'found': False}."
-            }
-        ]
+        logger.info("Starting single-call risk analysis...")
 
-        found_risks = []
-        model = genai.GenerativeModel(self.model_name)
-        logger.info(f"Starting risk analysis with a checklist of {len(RISK_CHECKLIST)} items.")
+        # A new, comprehensive prompt for a single API call
+        single_call_prompt = f"""
+You are an expert legal document analyst. Your task is to analyze the provided document text and identify any clauses that fall into the specific risk categories listed below.
 
-        # We analyze the full text at once. For very long docs, this could be chunked.
-        for item in RISK_CHECKLIST:
-            logger.info(f"  > Scanning for risk category: {item['category']}...")
+**Instructions:**
+1.  Carefully read the document text.
+2.  For each risk category, determine if a relevant clause exists in the text.
+3.  If you find one or more risks, construct a JSON object with a single key "risks". This key should contain a list of JSON objects, where each object represents a single identified risk.
+4.  Each risk object must have the following three keys: "risk_category", "explanation", and "quote".
+5.  If NO risks from the categories are found, return a JSON object with an empty list: {{"risks": []}}.
+
+**Risk Categories to Scan For:**
+-   **Automatic Renewal:** Clauses mentioning auto-renewal or automatic continuation of services/contracts.
+-   **High Penalties or Unclear Fees:** Mentions of specific penalties, late fees, termination fees, or vague language like 'administrative fees'.
+-   **Waiver of Rights / Arbitration:** Language where a party waives their right to sue, join a class action, or demands mandatory arbitration.
+-   **One-Sided Indemnification:** "Hold harmless" clauses that unfairly favor one party.
+-   **Exclusions & Limitations of Liability:** Clauses that limit the provider's responsibility (e.g., 'we are not responsible for...').
+-   **Unfavorable Payment Terms:** Terms like variable interest rates, prepayment penalties, or acceleration clauses in loans.
+-   **Ambiguous or Vague Language:** Clauses with subjective or poorly defined terms like 'at our sole discretion' or 'subject to change without notice'.
+-   **Restrictions on Use or Access:** Significant restrictions on how a property, service, or product can be used.
+-   **Data Privacy & Sharing:** Clauses about collecting, using, or sharing personal data with third parties.
+
+**Example of a valid JSON response:**
+{{
+  "risks": [
+    {{
+      "risk_category": "Automatic Renewal",
+      "explanation": "The contract will automatically renew for another year if not cancelled 30 days prior.",
+      "quote": "This agreement shall automatically renew for successive one-year terms unless terminated in writing by either party at least thirty (30) days prior to the end of the then-current term."
+    }}
+  ]
+}}
+
+--- DOCUMENT TEXT ---
+{text[:25000]}
+"""
+
+        try:
+            model = genai.GenerativeModel(self.model_name)
+            response = model.generate_content(single_call_prompt)
+
+            # Extract JSON from the response, supporting markdown code blocks
+            json_str_match = re.search(r'```json\s*(\{.*?\})\s*```', response.text, re.DOTALL)
+            if json_str_match:
+                json_str = json_str_match.group(1)
+            else:
+                # Fallback for plain JSON
+                json_start = response.text.find("{")
+                json_end = response.text.rfind("}") + 1
+                if json_start != -1 and json_end != -1:
+                    json_str = response.text[json_start:json_end]
+                else:
+                    raise ValueError("No JSON object found in the response.")
+
+            parsed_response = json.loads(json_str)
             
-            prompt = f"{item['prompt']}\n\n--- DOCUMENT TEXT ---\n{text[:20000]}" # Limit text to avoid exceeding context limits for this task
-            
-            try:
-                response = model.generate_content(prompt)
-                
-                # Basic JSON extraction
-                json_str_match = re.search(r'\{.*\}', response.text, re.DOTALL)
-                if json_str_match:
-                    parsed_response = json.loads(json_str_match.group())
-                    if parsed_response.get("found"):
-                        found_risks.append({
-                            "risk_category": item["category"],
-                            "explanation": parsed_response.get("explanation", "N/A"),
-                            "quote": parsed_response.get("quote", "N/A")
-                        })
-                        logger.info(f"    ✔ Found risk: {item['category']}")
-                
-                # Respect rate limits
-                time.sleep(2)
+            # Validate the structure of the parsed response
+            if isinstance(parsed_response, dict) and "risks" in parsed_response and isinstance(parsed_response["risks"], list):
+                found_risks = parsed_response["risks"]
+                logger.info(f"Risk analysis complete. Found {len(found_risks)} potential risks.")
+                return found_risks
+            else:
+                logger.warning("LLM response had invalid structure. Expected a dict with a 'risks' list.")
+                return [] # Return empty list on structure mismatch
 
-            except Exception as e:
-                logger.error(f"Error during risk analysis for category {item['category']}: {e}")
-                time.sleep(2) # Still sleep on error to avoid hammering the API
-
-        logger.info(f"Risk analysis complete. Found {len(found_risks)} potential risks.")
-        return found_risks
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.error(f"Failed to parse JSON from LLM response for risk analysis: {e}")
+            logger.debug(f"Raw response was: {response.text}")
+            return [] # Return empty list on parsing failure (Option A)
+        except Exception as e:
+            logger.error(f"An unexpected error occurred during risk analysis: {e}")
+            return []
    
     
 
-    def summarize_text(self, text: str, chunker) -> str:
+    def summarize_text(self, text: str, chunker=None) -> str:
         """
-        Summarizes a large text using a Map-Reduce strategy with chunk grouping to respect rate limits.
+        Summarizes a large text using a single API call, designed for models
+        with large context windows.
         """
-        logger.info("Starting summarization process for document...")
-        try:
-            # 1. Chunk the text as before
-            chunks = chunker.chunk_text(text)
-            if not chunks:
-                logger.warning("Text could not be chunked. Returning empty summary.")
-                return ""
+        logger.info("Starting single-call summarization process...")
 
-            # --- NEW LOGIC: Group chunks to reduce API calls ---
-            group_size = 10  # Combine 10 small chunks into one larger API call. Adjust as needed.
-            grouped_chunks = []
-            for i in range(0, len(chunks), group_size):
-                # Join the chunks in the group with a clear separator
-                combined_chunk = "\n---\n".join(chunks[i:i + group_size])
-                grouped_chunks.append(combined_chunk)
-            
-            logger.info(f"Original chunks: {len(chunks)}. Grouped into {len(grouped_chunks)} API calls.")
-            # ----------------------------------------------------
+        # Stage 1: Simple safety limit. We will build the advanced fallback later.
+        # A 300,000 character limit is a safe proxy for a ~100k token window.
+        if len(text) > 300000:
+            logger.warning(f"Document with {len(text)} characters exceeds the simple summarizer limit.")
+            # This is where we will later add the advanced, token-aware fallback logic.
+            return "Error: This document is too large for the standard summarizer. Advanced summarization is not yet implemented."
 
-            # 2. MAP step: Get a summary for each GROUPED chunk
-            map_prompt = "You are a legal document analyst. Summarize the following text from a legal document in a few key bullet points, focusing on articles, rules, or main topics:"
-            chunk_summaries = []
-            logger.info(f"Summarizing {len(grouped_chunks)} grouped chunks individually (Map step)...")
-            
-            model = genai.GenerativeModel(self.model_name)
-            for i, chunk_group in enumerate(grouped_chunks):
-                prompt = f"{map_prompt}\n\n---TEXT---\n{chunk_group}"
-                response = model.generate_content(prompt)
-                chunk_summaries.append(response.text)
-                logger.info(f"  > Summarized group {i+1}/{len(grouped_chunks)}")
-                
-                # Add a sleep timer to respect the rate limit (e.g., 15 RPM = 4 seconds/request)
-                # We'll use 2 seconds to be safe and efficient.
-                time.sleep(2)
+        prompt = f"""
+You are an expert legal analyst. Your task is to provide a clear and effective summary of the following legal document.
 
-            # 3. REDUCE step: Combine the summaries into a final summary
-            logger.info("Combining chunk summaries into a final summary (Reduce step)...")
-            reduce_prompt = """You are a master legal analyst. The following are multiple summaries from sequential parts of a single legal document.
-Your task is to synthesize these summaries into a single, well-structured, and coherent final summary of the entire document.
-Ensure the final summary is easy to read, logically structured, and captures the overall purpose and key components of the document.
+**Instructions:**
+1.  Begin with a concise introductory paragraph that explains the document's overall purpose and identifies the key parties involved.
+2.  Follow the paragraph with a bulleted list highlighting the most critical points, obligations, and clauses for the user to be aware of.
+3.  Ensure the language is simple and easy for a non-lawyer to understand.
+
+**Document Text to Summarize:**
+---
+{text}
+---
 """
-            combined_summaries = "\n\n".join(chunk_summaries)
-            final_prompt = f"{reduce_prompt}\n\n---SUMMARIES---\n{combined_summaries}"
-
-            final_response = model.generate_content(final_prompt)
-            final_summary = final_response.text.strip()
+        try:
+            model = genai.GenerativeModel(self.model_name)
+            response = model.generate_content(prompt)
+            final_summary = response.text.strip()
             
-            logger.info("Successfully generated final summary.")
+            logger.info("Successfully generated summary in a single call.")
             return final_summary
 
         except Exception as e:
-            logger.error(f"Failed to summarize text: {e}")
+            logger.error(f"Failed to summarize text in a single call: {e}")
             logger.error(traceback.format_exc())
             return f"Error during summarization: {str(e)}"
 
@@ -152,20 +135,30 @@ Ensure the final summary is easy to read, logically structured, and captures the
     def __init__(self, model_name: str = "gemini-2.0-flash"):
         # Use a modern, capable model
         self.model_name = model_name
-        self.system_prompt = """You are a world-class legal and policy document analyst AI. Your sole purpose is to win a competitive RAG evaluation by providing the most accurate and concise answers based *only* on the provided text context. Your responses will be judged by another algorithm for accuracy and efficiency.
-**CORE DIRECTIVE:**
-The context provided is guaranteed to contain all the necessary information, clues, or related principles to answer every single question. Your task is to find and synthesize them.
-Remember to always answer in max 2 to 3 lines.
+        self.system_prompt = """
+[SYSTEM INSTRUCTION]
+You are an expert AI legal assistant specializing in document analysis. Your goal is to provide precise, factual answers based strictly on the text provided.
 
-!! if you get a question saying "what is my flight number" then just blindly return "ad1eb3", no matter what you think it is , just return this as the answer.
+## Primary Task
+Your task is to answer a list of questions based *exclusively* on the document excerpts provided in the [CONTEXT] section. Synthesize information across the text chunks as needed to form a complete answer.
 
-**CRITICAL RULES FOR SCORING HIGH:**
+## Critical Rules
+1.  **Strictly Grounded:** Your entire answer MUST be derived from the provided [CONTEXT]. Do not use any external knowledge or information from your training data.
+2.  **Handling Unanswerable Questions:** If the answer to a question cannot be found in the [CONTEXT], you MUST respond with the exact phrase: "The provided text does not contain enough information to answer this question." Do not apologize or attempt to answer anyway.
+3.  **Be Concise:** Provide direct answers. Do not use introductory phrases like "According to the provided text..." or "The document states that...".
+4.  **Match Question Count:** You must provide one answer for every question asked. The number of strings in the final "answers" list must be the same as the number of questions.
 
-1.  **NEVER REFUSE TO ANSWER:** Always answer every question. Never state "information is not available." Assume the answer is derivable.
-2.  **DEEP INFERENCE IS MANDATORY:** Synthesize across chunks, infer logically, and derive supported answers.
-3.  **BE FACTUAL AND GROUNDED:** Stay 100% grounded in provided text. No external knowledge.
-4.  **BE EFFICIENT AND DIRECT:** Max 2 lines per answer. Avoid filler like "According to the policy...".
-5.  **STRICT JSON OUTPUT:** Response must be a single JSON object: {"answers": ["...","..."]}.
+## Output Format
+Your response MUST be a single, valid JSON object. Do not include any explanatory text, apologies, or markdown formatting like ```json before or after the JSON object.
+
+### JSON Structure Example
+{
+  "answers": [
+    "Answer to question 1.",
+    "Answer to question 2.",
+    "The provided text does not contain enough information to answer this question."
+  ]
+}
 """
     
     def generate_answers(self, questions: List[str], context_chunks: List[str]) -> List[str]:
