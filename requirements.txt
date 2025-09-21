@@ -8,16 +8,13 @@ langchain
 langchain-community
 pypdf
 pinecone
-sentence-transformers
-transformers
 numpy
 tiktoken
 google-generativeai
-scipy
-scikit-learn
-tokenizers
+openai
 huggingface-hub
 sqlalchemy
 psycopg2-binary
 pgvector
+
 
