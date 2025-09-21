@@ -1,10 +1,11 @@
-# In main.py
+# main.py
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
+from dotenv import load_dotenv  # <- load .env file
 
 # --- ADD THESE IMPORTS FOR YOUR SERVICES ---
 from app.services.content_processor import ContentProcessor
@@ -12,12 +13,14 @@ from app.services.chunker import ImprovedTextChunker
 from app.services.llm_processor import ImprovedLLMProcessor
 from app.services.vector_store import EnhancedHybridVectorStore
 
-
 from app.routes import endpoints
 from app.utils.logger import logger  # Corrected logger import
-from sentence_transformers import SentenceTransformer
+from app.services.embedding_model import OpenAIEmbeddingModel
 import pinecone
 import google.generativeai as genai
+
+# Load environment variables from .env
+load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -25,7 +28,7 @@ async def lifespan(app: FastAPI):
     
     # Load models and clients and attach them to the app's state
     logger.info("Loading embedding model...")
-    app.state.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+    app.state.embedding_model = OpenAIEmbeddingModel()
 
     logger.info("Initializing Pinecone...")
     pc = pinecone.Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
@@ -35,7 +38,7 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing Gemini...")
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-    # Also initialize your services here and attach them to the state
+    # Initialize other services
     app.state.content_processor = ContentProcessor()
     app.state.text_chunker = ImprovedTextChunker()
     app.state.llm_processor = ImprovedLLMProcessor()
@@ -50,20 +53,22 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="RAG API", lifespan=lifespan)
 
-# --- Updated CORS middleware for production and local development ---
-origins = [
-    os.getenv("CLIENT_ORIGIN_URL"),  # The URL for your deployed frontend (Vercel)
-    "http://localhost:3000",         # The URL for local development
-]
-
+# CORS middleware for frontend communication
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origin for origin in origins if origin], # Filters out None if env var isn't set
+    allow_origins=[
+        "null", 
+        "http://localhost",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://127.0.0.1:8080", 
+        "http://localhost:8080",
+        "http://localhost:8081",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# --------------------------------------------------------------------
 
 app.include_router(endpoints.router)
 
