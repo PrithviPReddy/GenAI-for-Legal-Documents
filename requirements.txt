@@ -7,7 +7,7 @@ python-dotenv
 langchain
 langchain-community
 pypdf
-pinecone-client
+pinecone
 sentence-transformers
 transformers
 numpy
@@ -20,3 +20,4 @@ huggingface-hub
 sqlalchemy
 psycopg2-binary
 pgvector
+
