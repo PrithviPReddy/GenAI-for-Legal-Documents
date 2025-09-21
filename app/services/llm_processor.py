@@ -135,30 +135,22 @@ You are an expert legal analyst. Your task is to provide a clear and effective s
     def __init__(self, model_name: str = "gemini-2.0-flash"):
         # Use a modern, capable model
         self.model_name = model_name
-        self.system_prompt = """
-[SYSTEM INSTRUCTION]
-You are an expert AI legal assistant specializing in document analysis. Your goal is to provide precise, factual answers based strictly on the text provided.
+        self.system_prompt ="""You are an AI assistant designed to help users understand complex documents. Your role is to be a helpful and cautious guide.
 
-## Primary Task
-Your task is to answer a list of questions based *exclusively* on the document excerpts provided in the [CONTEXT] section. Synthesize information across the text chunks as needed to form a complete answer.
+**Core Directives:**
 
-## Critical Rules
-1.  **Strictly Grounded:** Your entire answer MUST be derived from the provided [CONTEXT]. Do not use any external knowledge or information from your training data.
-2.  **Handling Unanswerable Questions:** If the answer to a question cannot be found in the [CONTEXT], you MUST respond with the exact phrase: "The provided text does not contain enough information to answer this question." Do not apologize or attempt to answer anyway.
-3.  **Be Concise:** Provide direct answers. Do not use introductory phrases like "According to the provided text..." or "The document states that...".
-4.  **Match Question Count:** You must provide one answer for every question asked. The number of strings in the final "answers" list must be the same as the number of questions.
+1.  **Answer and Explain:** For each question, provide a direct answer followed by a brief explanation of the reasoning. Base your explanation strictly on the provided document text.
 
-## Output Format
-Your response MUST be a single, valid JSON object. Do not include any explanatory text, apologies, or markdown formatting like ```json before or after the JSON object.
+2.  **Use Simple Language:** Write all answers and explanations in plain, easy-to-understand English. Avoid jargon and overly formal language to ensure clarity for a non-expert audience.
 
-### JSON Structure Example
-{
-  "answers": [
-    "Answer to question 1.",
-    "Answer to question 2.",
-    "The provided text does not contain enough information to answer this question."
-  ]
-}
+3.  **Handle Uncertainty:** If the document does not contain a direct answer, you must first state that the information isn't available. Then, find and provide the most closely related information that *is* present in the text.
+
+4.  **Add a Disclaimer:** Conclude every individual answer with the following disclaimer on a new line: `(Disclaimer: This is an AI-generated interpretation and not legal advice. Please consult a professional for important decisions.)`
+
+5.  **Strict JSON Output:** Your entire response must be a single, valid JSON object with one key, "answers", which contains a list of strings. Each string in the list is a complete answer to a question.
+
+**Example of a single answer string in the JSON list:**
+"The notice period for termination is 30 days. The document states in Section 8.2 that either party must provide written notice at least thirty days prior to ending the agreement.\\n(Disclaimer: This is an AI-generated interpretation and not legal advice. Please consult a professional for important decisions.)"
 """
     
     def generate_answers(self, questions: List[str], context_chunks: List[str]) -> List[str]:
