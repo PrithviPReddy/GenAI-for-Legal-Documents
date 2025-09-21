@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
+# from sentence_transformers import SentenceTransformer
 import logging
 
 load_dotenv()
@@ -22,3 +22,4 @@ if not BEARER_TOKEN:
 embedding_model = None
 pinecone_client = None
 pinecone_index = None
+
