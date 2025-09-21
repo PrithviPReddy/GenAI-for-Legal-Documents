@@ -6,7 +6,7 @@ from fastapi import (
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, HttpUrl
 
-from app.config import BEARER_TOKEN
+# from app.config import BEARER_TOKEN
 from session_manager import (
     get_session_data,
     update_session_data,
@@ -47,6 +47,9 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     return credentials
 
 # --- NEW WORKFLOW ENDPOINTS ---
+@router.get("/")
+async def root_health():
+    return {"status": "ok", "message": "Gen AI API backend is running!"}
 
 @router.post("/analyze/risks", response_model=AnalyzeResponse)
 async def analyze_document_risks(
@@ -166,4 +169,5 @@ async def summarize_document(
 @router.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
 
