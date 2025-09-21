@@ -50,22 +50,20 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="RAG API", lifespan=lifespan)
 
-# CORS middleware for frontend communication
+# --- Updated CORS middleware for production and local development ---
+origins = [
+    os.getenv("CLIENT_ORIGIN_URL"),  # The URL for your deployed frontend (Vercel)
+    "http://localhost:3000",         # The URL for local development
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "null", 
-        "http://localhost",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-        "http://127.0.0.1:8080", 
-        "http://localhost:8080",
-        "http://localhost:8081",
-    ],
+    allow_origins=[origin for origin in origins if origin], # Filters out None if env var isn't set
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# --------------------------------------------------------------------
 
 app.include_router(endpoints.router)
 
